@@ -55,8 +55,8 @@ def check_for_images():
     for blob in bucket.list_blobs():
         filename = blob.name
         if filename.endswith('.jpg') and filename not in [info['name'] for info in image_info]:
-            blob.download_to_filename('files/' + filename)
-            with Image.open('files/' + filename) as img:
+            blob.download_to_filename('img_files/' + filename)
+            with Image.open('img_files/' + filename) as img:
                 buffered = BytesIO()
                 img.save(buffered, format="JPEG")
                 img_str = base64.b64encode(buffered.getvalue())
