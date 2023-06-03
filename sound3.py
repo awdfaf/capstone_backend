@@ -1,8 +1,7 @@
 import os
 import shutil
-import wave
-import math
 from spleeter.separator import Separator
+import librosa
 
 def run_separator():
     # Prepare to use Splitter
@@ -19,6 +18,9 @@ def run_separator():
     collection_folder = "./vocals_collection"
     if not os.path.exists(collection_folder):
         os.makedirs(collection_folder)
+
+    max_volume = None
+    loudest_file = None
 
     while True:
         # Check for new files in the input folder
@@ -52,38 +54,35 @@ def run_separator():
 
                 # Remove the result folder
                 shutil.rmtree(result_folder_path)
+        
 
-        # Find file with the maximum volume in vocals_collection
-        find_file_with_max_volume()
+        # Check if there are 4 files in vocals_collection
+        if len(os.listdir(collection_folder)) == 4:
+            max_volume = None
+            # Find file with the maximum volume in vocals_collection
+            for file in os.listdir(collection_folder):
+                if file.endswith('.wav'):
+                    # Load the audio file
+                    y, sr = librosa.load(os.path.join(collection_folder, file))
+                    
+                    # Calculate the volume
+                    volume = librosa.feature.rms(y=y)[0].mean()
+                    
+                    # Update the loudest file if the current volume is higher
+                    if max_volume is None or volume > max_volume:
+                        max_volume = volume
+                        loudest_file = file
 
-def find_file_with_max_volume():
-    collection_folder = "./vocals_collection"
+            # Print the file with the maximum volume
+            print("File with the maximum volume:", loudest_file)
+            
+            # Reset the collection folder
+            shutil.rmtree(collection_folder)
+            os.makedirs(collection_folder)
+            
+            return loudest_file
 
-    # Get all WAV files in the collection folder
-    wav_files = [file for file in os.listdir(collection_folder) if file.endswith(".wav")]
-
-    max_volume = float("-inf")
-    max_volume_file = None
-
-    # Iterate over WAV files
-    for file_name in wav_files:
-        file_path = os.path.join(collection_folder, file_name)
-        with wave.open(file_path, 'r') as wav:
-            # Get the maximum amplitude
-            max_amplitude = max(abs(float(sample)) for sample in wav.readframes(wav.getnframes()))
-
-            # Calculate the volume (dBFS)
-            volume = 20 * math.log10(max_amplitude / float(wav.getsampwidth()))
-
-            # Check if it's the maximum volume so far
-            if volume > max_volume:
-                max_volume = volume
-                max_volume_file = file_name
-
-    if max_volume_file:
-        print("File with the maximum volume:", max_volume_file)
-    # else:
-    #     print("No WAV files found in the collection folder.")
 
 if __name__ == '__main__':
     run_separator()
+    
