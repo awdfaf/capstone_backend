@@ -1,0 +1,27 @@
+body {
+    background-color: #f8f9fa;
+}
+.image-list, .result-list {
+    overflow-x: auto;
+    white-space: nowrap;
+    padding: 20px;
+}
+.image-list .card, .result-list .card {
+    display: inline-block;
+    margin: 10px;
+    width: 300px;
+}
+.image-list .card img {
+    max-height: 200px;
+    width: auto;
+    object-fit: cover;
+}
+.button-container {
+    text-align: center;
+    margin-bottom: 20px;
+}
+#result {
+    text-align: center;
+    font-size: 20px;
+    margin-bottom: 20px;
+}

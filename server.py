@@ -10,6 +10,8 @@ import shutil
 import threading
 from spleeter.separator import Separator
 import librosa
+from PIL import Image
+from io import BytesIO
 
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")
@@ -30,10 +32,19 @@ lock_image = threading.Lock()
 
 running_image = False 
 
+lock_image_downloading = threading.Lock()
+running_image_downloading = False 
+gcp_images_downloaded = set()
+lock_image_downloading_gray = threading.Lock()
+running_image_downloading_gray = False 
+gcp_images_downloaded_gray = set()
 # -----------------------------------------------------------------
 
-def check_files_image():
-    global video_files
+video_files_1 = set()
+
+
+def download_and_process_videos_1():
+    global video_files_1
     global existing_files
     global running_image
     while running_image:  
@@ -43,28 +54,79 @@ def check_files_image():
                 if not running_image:
                     break
                 filename = blob.name.replace('video/', '')
-                if filename.endswith('.avi') and filename not in video_files and filename not in existing_files:
+                if filename.startswith('1_') and filename.endswith('.avi') and filename not in video_files_1 and filename not in existing_files:
                     blob.download_to_filename('video_files/video/' + filename)
-                    video_files.add(filename)
+                    video_files_1.add(filename)
                     yolov7_process = subprocess.run(['python', 'yolov7-main/detect.py', '--weights', './yolov7-main/yolov7.pt', '--classes', '0', '--source', 'video_files/video/' + filename, '--nosave'])
-                    for analyzed_filename in os.listdir('./crop'):
-                        if not running_image:
-                            break
-                        with open('./crop/' + analyzed_filename, 'rb') as img:
-                            encoded_string = base64.b64encode(img.read()).decode('utf-8')
-                            socketio.emit('new_image', {"image": encoded_string, "time": time.time(), "gps": "dummy gps value"})
-                            time.sleep(1)
-                    if not running_image:
-                        break
             if not running_image:
+                break
+        time.sleep(1)
+        
+def emit_images():
+    global running_image
+    processed_images = set()  # Set to keep track of processed images
+    while running_image:
+        for analyzed_filename in os.listdir('./crop'):
+            if not running_image:
+                break
+            if analyzed_filename not in processed_images:
+                with open('./crop/' + analyzed_filename, 'rb') as img:
+                    encoded_string = base64.b64encode(img.read()).decode('utf-8')
+                    socketio.emit('new_image', {"image": encoded_string, "time": time.time()})
+                    processed_images.add(analyzed_filename)  # Add processed image to the set
+            time.sleep(1)
+        if not running_image:
+            break
+        time.sleep(1)
+
+
+def download_gcp_images():
+    global running_image_downloading
+    global gcp_images_downloaded
+    while running_image_downloading:
+        with lock_image_downloading:
+            blobs = list(bucket.list_blobs(prefix='image/')) 
+            for blob in blobs:
+                if not running_image_downloading:
+                    break
+                filename = blob.name.replace('image/', '')
+                if filename.endswith('.jpg') and filename not in gcp_images_downloaded:
+                    blob.download_to_filename('crop/' + filename)
+                    gcp_images_downloaded.add(filename)
+            if not running_image_downloading:
+                break
+        time.sleep(1)
+def download_gcp_images_gray():
+    global running_image_downloading_gray
+    global gcp_images_downloaded_gray
+    while running_image_downloading_gray:
+        with lock_image_downloading_gray:
+            blobs = list(bucket.list_blobs(prefix='image_gray/')) 
+            for blob in blobs:
+                if not running_image_downloading_gray:
+                    break
+                filename = blob.name.replace('image_gray/', '')
+                if filename.endswith('.jpg') and filename not in gcp_images_downloaded_gray:
+                    blob.download_to_filename('crop/' + filename)
+                    gcp_images_downloaded_gray.add(filename)
+            if not running_image_downloading_gray:
                 break
         time.sleep(1)
 
 @socketio.on('start_checking')
 def start_checking_image():
     global running_image 
+    global running_image_downloading
+    global running_image_downloading_gray
     running_image = True 
-    socketio.start_background_task(check_files_image)
+    running_image_downloading = True 
+    running_image_downloading_gray = True 
+    socketio.start_background_task(download_and_process_videos_1)
+    socketio.start_background_task(download_gcp_images)
+    socketio.start_background_task(download_gcp_images_gray)
+    socketio.start_background_task(emit_images)
+    
+  
 
 @socketio.on('stop_checking')
 def stop_checking_image():
@@ -74,11 +136,25 @@ def stop_checking_image():
 @socketio.on('clear_images')
 def clear_images_image():
     global running_image
+    global processed_images 
+    processed_images = set()
     if not running_image:
         for filename in os.listdir('./crop'):
             os.remove('./crop/' + filename)
+        for filename in os.listdir('./image'):
+            os.remove('./image/' + filename)
+        for filename in os.listdir('./image_gray'):
+            os.remove('./image_gray/' + filename)
+        for filename in os.listdir('video_files/video'):
+            if filename != '.ipynb_checkpoints':  # Exclude '.ipynb_checkpoints' directory
+                path = 'video_files/video/' + filename
+                if os.path.isfile(path):
+                    os.remove(path)
+                elif os.path.isdir(path):  # If it's a directory, remove it with shutil.rmtree
+                    shutil.rmtree(path)
     else:
-        emit('clear_failed', {"message": "Can't clear images while checking is running."})
+        emit('clear_failed', {"message": "Can't clear images and videos while checking is running."})
+
 
 
 
@@ -147,6 +223,9 @@ def run_separator():
         # Reset the collection folder
         shutil.rmtree(collection_folder)
         os.makedirs(collection_folder)
+        
+        
+        return loudest_file
 
 
 existing_files_sound = set(os.listdir('input_sound_files'))
@@ -193,8 +272,6 @@ def stop_checking_sound():
 @app.route('/')
 def index():
     return render_template('stream.html')
-
-
 
 if __name__ == '__main__':
     socketio.run(app, debug=True)
