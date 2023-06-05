@@ -12,6 +12,7 @@ from spleeter.separator import Separator
 import librosa
 from PIL import Image
 from io import BytesIO
+from base64 import b64encode
 
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")
@@ -145,9 +146,9 @@ def clear_images_image():
             os.remove('./image/' + filename)
         for filename in os.listdir('./image_gray'):
             os.remove('./image_gray/' + filename)
-        for filename in os.listdir('video_files/video'):
+        for filename in os.listdir('./video_files/video'):
             if filename != '.ipynb_checkpoints':  # Exclude '.ipynb_checkpoints' directory
-                path = 'video_files/video/' + filename
+                path = './video_files/video/' + filename
                 if os.path.isfile(path):
                     os.remove(path)
                 elif os.path.isdir(path):  # If it's a directory, remove it with shutil.rmtree
@@ -220,6 +221,10 @@ def run_separator():
         # Print the file with the maximum volume
         print("File with the maximum volume:", loudest_file)
 
+        # # Read the loudest file and base64 encode it
+        # with open(os.path.join(collection_folder, loudest_file), "rb") as f:
+        #     encoded_string = b64encode(f.read()).decode('utf-8')
+        
         # Reset the collection folder
         shutil.rmtree(collection_folder)
         os.makedirs(collection_folder)
@@ -250,8 +255,8 @@ def check_files_sound():
             if first_run_sound:
                 time.sleep(15) 
                 first_run_sound = False
-            result = run_separator()
-            socketio.emit('new_result', {"result": result})
+            result = run_separator()  # Change this line
+            socketio.emit('new_result', {"result": result})  # And this line
         time.sleep(1)
 
 @socketio.on('start_checking_')
@@ -266,6 +271,11 @@ def start_checking_sound():
 def stop_checking_sound():
     global running_sound
     running_sound = False
+
+@socketio.on('clear_sound')
+def clear_sound():
+    # Reset the div where the audio player is displayed
+    socketio.emit('clear_audio')
 
 
 

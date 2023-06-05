@@ -38,7 +38,34 @@ socket.on('new_image', function(data) {
 
 
 socket.on('new_result', function(data) {
-    document.getElementById('result').innerHTML = "File with the maximum volume: " + data.result;
+    document.getElementById('result').innerHTML = "소리가 나는 방향은 " + data.result + " 방향 입니다.";
+
+    // // Create a new audio element
+    // const audio = document.createElement('audio');
+    // audio.controls = true;
+
+    // // Create a new source element
+    // const source = document.createElement('source');
+    // source.src = 'data:audio/wav;base64,' + data.data;
+    // source.type = 'audio/wav';
+
+    // // Append the source to the audio
+    // audio.appendChild(source);
+
+    // // Get the audio player container
+    // const playerContainer = document.getElementById('audioPlayerContainer');
+
+    // // Clear the audio player container
+    // playerContainer.innerHTML = '';
+
+    // // Append the new audio player
+    // playerContainer.appendChild(audio);
 });
 
+socket.on('clear_audio', function() {
+    // Get the audio player container
+    const playerContainer = document.getElementById('audioPlayerContainer');
 
+    // Clear the audio player container
+    playerContainer.innerHTML = '';
+});

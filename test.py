@@ -46,7 +46,7 @@ def check_files():
                             time.sleep(1)
 
                         # Move the analyzed file to another directory
-                        shutil.move('./crop/' + analyzed_filename, './crop_processed/' + analyzed_filename)
+                        #shutil.move('./crop/' + analyzed_filename, './crop_processed/' + analyzed_filename)
                     
                     # Clear the yolov7/crop folder to make sure there's no residual files
                     # for file in os.listdir('yolov7-main/crop'):
