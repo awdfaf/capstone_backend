@@ -202,7 +202,7 @@ def run_separator():
             shutil.rmtree(result_folder_path)
 
     # Check if there are 4 files in vocals_collection
-    if len(os.listdir(collection_folder)) == 4:
+    if len(os.listdir(collection_folder)) == 2:
         max_volume = None
         # Find file with the maximum volume in vocals_collection
         for file in os.listdir(collection_folder):
