@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Real-Time Analysis</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
+    <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
+    <script type="text/javascript" charset="utf-8">
+        var socket = io.connect('http://' + document.domain + ':' + location.port);
+        socket.on('connect', function() {
+            document.getElementById('start_image').addEventListener('click', function() {
+                socket.emit('start_checking');
+            });
+            document.getElementById('stop_image').addEventListener('click', function() {
+                socket.emit('stop_checking');
+            });
+            document.getElementById('clear_image').addEventListener('click', function() {
+                socket.emit('clear_images');
+            });
+            document.getElementById('start_sound').addEventListener('click', function() {
+                socket.emit('start_checking_sound');
+            });
+            document.getElementById('stop_sound').addEventListener('click', function() {
+                socket.emit('stop_checking_sound');
+            });
+            document.getElementById('clear_sound').addEventListener('click', function() {
+                socket.emit('clear_sound');
+            });
+        });
+        socket.on('new_image', function(data) {
+            var img = new Image();
+            img.src = 'data:image/jpeg;base64,' + data.image_data;
+            img.className = 'img-thumbnail';  // Apply Bootstrap class
+            document.getElementById('images').appendChild(img);
+        });
+        socket.on('new_sound', function(data) {
+            var p = document.createElement('p');
+            p.innerText = '소리가 ' + data.direction + '에서 발생했습니다.';
+            document.getElementById('result').appendChild(p);
+        });
+    </script>
+</head>
+<body>
+    <h1 class="text-center mt-3 mb-3">Real-Time Analysis</h1>
+    <div class="container">
+        <h2>Image Analysis</h2>
+        <div class="button-container">
+            <button id="start_image" class="btn btn-primary">Start Image Checking</button>
+            <button id="stop_image" class="btn btn-secondary">Stop Image Checking</button>
+            <button id="clear_image" class="btn btn-danger">Clear Images</button>
+        </div>
+        <div id="images" class="image-list">
+            <!-- Image cards will be inserted here -->
+        </div>
+        <h2>Sound Analysis</h2>
+        <div class="button-container">
+            <button id="start_sound" class="btn btn-primary">Start Sound Checking</button>
+            <button id="stop_sound" class="btn btn-secondary">Stop Sound Checking</button>
+            <button id="clear_sound" class="btn btn-danger">Clear Sound Results</button>
+        </div>
+        <div id="result"></div>
+    </div>
+</body>
+</html>

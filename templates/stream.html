@@ -3,31 +3,193 @@
 <head>
     <title>Real-Time Analysis</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
-    <script src="{{ url_for('static', filename='main.js') }}"></script>
+    <script src="https://cdn.socket.io/4.3.1/socket.io.min.js"></script>
+    <script type="text/javascript" charset="utf-8">
+        var socket = io.connect('http://' + document.domain + ':' + location.port);
+        socket.on('connect', function() {
+            document.getElementById('start_image').addEventListener('click', function() {
+                socket.emit('start_checking_image');
+            });
+            document.getElementById('stop_image').addEventListener('click', function() {
+                socket.emit('stop_checking_image');
+            });
+            document.getElementById('clear_image').addEventListener('click', function() {
+                socket.emit('clear_images');
+            });
+            document.getElementById('start_sound').addEventListener('click', function() {
+                socket.emit('start_checking_sound');
+            });
+            document.getElementById('stop_sound').addEventListener('click', function() {
+                socket.emit('stop_checking_sound');
+            });
+            document.getElementById('clear_sound').addEventListener('click', function() {
+                socket.emit('clear_sound');
+            });
+            document.getElementById('start_gps').addEventListener('click', function() {
+                socket.emit('start_gps_tracking');
+            });
+            document.getElementById('stop_gps').addEventListener('click', function() {
+                socket.emit('stop_gps_tracking');
+            });
+        });
+        socket.on('new_image', function(data) {
+            console.log("Received new image");
+            var img = new Image();
+            img.src = data.image;
+            img.className = 'img-thumbnail';
+
+            var timeSpan = document.createElement('span');
+            timeSpan.innerText = new Date().toLocaleTimeString();
+            timeSpan.style.display = 'block';
+
+            var div = document.createElement('div');
+            div.className = 'image-item';
+            div.appendChild(img);
+            div.appendChild(timeSpan);
+
+            document.getElementById('images').prepend(div); // 변경된 부분
+        });
+        socket.on('new_result', function(data) {
+            var p = document.getElementById('result');
+            p.innerText = data.result;
+        });
+    </script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDCgTqlb-8VJuogmoZaga4cZU-pUC_lVig&callback=initMap" async defer></script>
+    
+    <script>
+        // Initialize map
+        var map, marker;
+        function initMap() {
+            // The location of Uluru
+            var uluru = {lat: 35.1345, lng: 129.1061};
+            // The map, centered at Uluru
+            map = new google.maps.Map(
+                document.getElementById('map'), {zoom: 17, center: uluru});
+            // The marker, positioned at Uluru
+            marker = new google.maps.Marker({position: uluru, map: map});
+        }
+        
+        // Update location on receiving new_coordinates event
+        socket.on('new_coordinates', function(data) {
+            var newLatLng = new google.maps.LatLng(data.lat, data.lng);
+            marker.setPosition(newLatLng);
+            map.setCenter(newLatLng);
+        });
+    </script>
+    <style>
+        .card {
+            margin: 10px 0;
+        }
+        .image-list {
+            display: flex;
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+        .image-item {
+            flex-shrink: 0; /* flex shrink 동작 비활성화 */
+            width: 400px; /* 이미지 항목에 고정된 너비 할당 */
+            margin-right: 10px;
+        }
+        .image-item img {
+            width: 100%; /* 이미지를 이미지 항목의 너비에 맞게 조절 */
+            height: 400px;
+            object-fit: cover;
+        }
+        #map {
+            height: 1000px;
+            width: 100%;
+        }
+        
+    </style>
+
 </head>
 <body>
-    <h1 class="text-center mt-3 mb-3">Real-Time Analysis</h1>
-    <div class="container">
-        <h2>Image Analysis</h2>
-        <div class="button-container">
-            <button id="start_image" class="btn btn-primary">Start Image Checking</button>
-            <button id="stop_image" class="btn btn-secondary">Stop Image Checking</button>
-            <button id="clear_image" class="btn btn-danger">Clear Images</button>
+    <nav class="navbar navbar-expand-lg bg-light">
+        <div class="container-fluid">
+          <a class="navbar-brand" href="#">SeekR</a>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse justify-content-end" id="navbarSupportedContent">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+              <li class="nav-item">
+                <a class="nav-link active" aria-current="page" href="#">Github</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#">Notion</a>
+              </li>
+              <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                  Change Drone
+                </a>
+                <ul class="dropdown-menu">
+                  <li><a class="dropdown-item" href="#">Action</a></li>
+                  <li><a class="dropdown-item" href="#">Another aasdadction</a></li>
+                  <li><a class="dropdown-item" href="/">Something else here</a></li>
+                </ul>
+              </li>
+              
+            </ul>
+            <form class="d-flex" role="search">
+              <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search">
+              <button class="btn btn-outline-success" type="submit">Search</button>
+            </form>
+          </div>
         </div>
-        <div id="images" class="image-list">
-            <!-- Image cards will be inserted here -->
+    </nav>
+
+    <div class="container-fluid">
+        <h1 class="text-center mt-3 mb-3">Real-Time Analysis Dashboard</h1>
+        <div class="row vh-100">
+            <div class="col-md-6 h-100">
+                <div class="card h-50 mb-4">
+                    <div class="card-header" style="font-size: 2em;">
+                        Image Analysis
+                    </div>
+                    <div class="card-body">
+                        <div class="button-container">
+                            <button id="start_image" class="btn btn-primary">Start Image Checking</button>
+                            <button id="stop_image" class="btn btn-secondary">Stop Image Checking</button>
+                            <button id="clear_image" class="btn btn-danger">Clear Images</button>
+                        </div>
+                        <div id="images" class="image-list mt-3">
+                            <!-- Image cards will be inserted here -->
+                        </div>
+                    </div>
+                </div>
+                <div class="card h-50">
+                    <div class="card-header" style="font-size: 2em;">
+                        Sound Analysis
+                    </div>
+                    <div class="card-body">
+                        <div class="button-container">
+                            <button id="start_sound" class="btn btn-primary">Start Sound Checking</button>
+                            <button id="stop_sound" class="btn btn-secondary">Stop Sound Checking</button>
+                            <button id="clear_sound" class="btn btn-danger">Clear Sound Results</button>
+                        </div>
+                        <div class="card">
+                            <div class="card-body">
+                                <div id="result" style="font-size: 2em;"></div>
+                            </div>
+                          </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 h-100">
+                <div class="card h-100">
+                    <div class="card-header" style="font-size: 2em;">
+                        GPS Tracker
+                    </div>
+                    <div class="card-body">
+                        <button id="start_gps" class="btn btn-primary">Start GPS Tracking</button>
+                        <button id="stop_gps" class="btn btn-secondary">Stop GPS Tracking</button>
+                        <div id="map"></div>
+                    </div>
+                </div>
+            </div>
         </div>
-        <h2>Sound Analysis</h2>
-        <div class="button-container">
-            <button id="start_sound" class="btn btn-primary">Start Sound Checking</button>
-            <button id="stop_sound" class="btn btn-secondary">Stop Sound Checking</button>
-            <button id="clear_sound" class="btn btn-danger">Clear Sound Results</button>
-        </div>
-        <div id="result"></div>
-        
-        
     </div>
+    
 </body>
+
 </html>

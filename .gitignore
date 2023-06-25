@@ -42,3 +42,5 @@ yarn-error.log*
 *.mp3
 
 pretrained_models/2stems/model.data-00000-of-00001
+
+.env
