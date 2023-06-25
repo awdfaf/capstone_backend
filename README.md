@@ -1,3 +1,5 @@
+![Untitled](./images/poster.jpg)
+
 # Capstone Design
 
 # Introduce
