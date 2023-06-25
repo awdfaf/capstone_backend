@@ -1,4 +1,4 @@
-![Untitled](./images/poster.jpg)
+![Untitled](./images/poster.png)
 
 # Capstone Design
 
